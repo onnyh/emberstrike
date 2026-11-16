@@ -9,8 +9,8 @@ const MAX_PARTICLES = 320;
 
 export function createEffects(scene) {
   // Tracers: thin additive boxes stretched between muzzle and impact.
-  const tracerMat = new THREE.MeshBasicMaterial({ color: PALETTE.tracer, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
-  const tracerGeo = new THREE.BoxGeometry(0.02, 0.02, 1);
+  const tracerMat = new THREE.MeshBasicMaterial({ color: PALETTE.tracer, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false });
+  const tracerGeo = new THREE.BoxGeometry(0.013, 0.013, 1);
   const tracers = [];
   for (let i = 0; i < 40; i++) {
     const m = new THREE.Mesh(tracerGeo, tracerMat);
@@ -117,7 +117,7 @@ export function createEffects(scene) {
       t.mesh.scale.set(1, 1, len);
       t.mesh.lookAt(bx, by, bz);
       t.mesh.visible = true;
-      t.life = 0.05;
+      t.life = 0.038;
     },
     muzzle(x, y, z) {
       const g = glows[glowIdx];

@@ -219,7 +219,7 @@ function engage(c, api, dt) {
   const wantPitch = Math.atan2(aimY - (c.body.pos.y + c.body.height - 0.16), dist);
   const aimOff = turnToward(c, wantYaw, wantPitch, dt, 3.8);
   brain.reactionT -= dt;
-  brain.aimErr = Math.max(0.02 - brain.skill * 0.011, brain.aimErr - dt * 0.028);
+  brain.aimErr = Math.max(0.034 - brain.skill * 0.012, brain.aimErr - dt * 0.02);
 
   // Footwork: close in from far, strafe in the middle band, hold close up.
   brain.strafeT -= dt;
@@ -261,8 +261,8 @@ function engage(c, api, dt) {
   }
   brain.burstWait -= dt;
   if (brain.burstLeft <= 0 && brain.burstWait <= 0) {
-    brain.burstLeft = rng.int(3, 6);
-    brain.burstWait = rng.range(0.34, 0.75) + dist * 0.006;
+    brain.burstLeft = rng.int(2, 4);
+    brain.burstWait = rng.range(0.5, 0.95) + dist * 0.008;
   }
   const canShoot = brain.reactionT <= 0 && brain.seenT < 0.25 && aimOff < 0.09 + brain.aimErr;
   c.wantFire = canShoot && brain.burstLeft > 0;

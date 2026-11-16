@@ -83,7 +83,7 @@ export function createViewmodel(camera) {
   root.position.set(0.23, -0.21, -0.42);
   camera.add(root);
   const flash = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.3, 0.3),
+    new THREE.PlaneGeometry(0.17, 0.17),
     new THREE.MeshBasicMaterial({ color: 0xffc873, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }),
   );
   flash.position.set(0, 0.01, -0.5);

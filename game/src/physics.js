@@ -147,7 +147,7 @@ export function rayVsCharacter(ox, oy, oz, dx, dy, dz, charPos, height, maxDist)
       s = (abDotD * dDotAO - abDotAO) / denom;
       s = Math.max(0, Math.min(1, s));
     }
-    t = abDotD * s - dDotAO;
+    t = abDotD * s + dDotAO;
     if (t > 0 && t < maxDist) {
       const px = ox + dx * t - (ax + abx * s);
       const py = oy + dy * t - (ay + aby * s);

@@ -366,6 +366,11 @@ function setupShot(name) {
     for (const c of game.combatants) { c.money = 6000; game.buyItem(c, 'rifle'); }
     const carrier = game.combatants.find((c) => c.carrier);
     if (carrier && carrier !== player) { carrier.carrier = false; player.carrier = true; st.bomb.carrierId = player.id; }
+    // The Wardens start far west, caught out of position: the plant goes down
+    // uncontested, and two of them rotate in only once it is ticking.
+    const defs = defBots();
+    const defSpots = [[-12, -20], [-7, -21.5], [0, -20], [4, -16.5], [-13, -18]];
+    defs.forEach((d, i) => teleport(d, defSpots[i][0], defSpots[i][1], Math.PI / 2));
     teleport(player, world.site.plantX - 1.2, world.site.plantZ - 0.6, -Math.PI / 2);
     game.tryInteract(player);
     stage = { name, planted: false, t: 0 };
@@ -401,12 +406,17 @@ function stageTick(dt) {
         stage.t = 0;
         teleport(player, 20.2, -4.2, Math.PI); // hold the north angle over the site
         player.desired.crouch = true;
+        // Two Wardens come back for the retake, still a lane away.
+        const defs = defBots();
+        teleport(defs[0], 13, -9, Math.PI / 2);
+        teleport(defs[1], 15, 10, Math.PI / 2);
       }
+      if (stage.t > 40) freeze(); // the plant never landed; take the frame anyway
     } else {
       player.desired.x = 0; player.desired.z = 0;
       player.desired.crouch = true;
       player.yaw = Math.PI + Math.sin(stage.t * 0.5) * 0.14;
-      if (stage.t > 1.7) freeze();
+      if (stage.t > 1.2) freeze();
     }
   } else if (stage.name === 'win') {
     if (st.phase === 'over' || st.phase === 'matchover') freeze();
@@ -430,7 +440,9 @@ function frame(now) {
   lastTime = now;
   // A human's tab never legitimately lags a quarter second; a headless test
   // run on software rendering may, and there the sim is allowed to catch up.
-  const dtCap = demo ? 1.0 : 0.25;
+  // Staged stills (except the long win wait) take the opposite deal: few ticks
+  // per frame, so a frame's effects are one moment, not a second of gunfire.
+  const dtCap = shotName === 'plant' ? 0.15 : shotName && shotName !== 'win' ? 0.06 : demo ? 1.0 : 0.25;
   if (dt > dtCap) dt = dtCap;
   if (!frozen) {
     accumulator += dt;
