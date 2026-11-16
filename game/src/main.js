@@ -62,6 +62,7 @@ let recoilYaw = 0;
 let scopedNow = false;
 let deathT = 0;
 let shotsFired = 0;
+let lastShotAt = -99;
 let demoBoughtRound = 0;
 let stage = null; // shot staging state machine
 
@@ -108,6 +109,7 @@ game = createGame({
       recoil += def.kick * 0.55;
       recoilYaw += (rng.next() - 0.5) * def.recoil * 0.5;
       shotsFired++;
+      lastShotAt = game.state.time;
     },
     onPlayerReload(dur) { viewmodel.startReload(dur); },
     onPlayerWeapon(w, slot) {
@@ -117,7 +119,9 @@ game = createGame({
     onPlayerDeath() { deathT = 0; },
     onRoundStart(state) {
       deathT = 0;
-      hud.banner(`ROUND ${state.round}`, `Kindled ${state.score.atk} — ${state.score.def} Wardens · first to 7`, '', 1.6);
+      // The fight still freezes mid-burst a second or two in; the round banner
+      // would still be on screen, so that one still skips it.
+      if (shotName !== 'fight') hud.banner(`ROUND ${state.round}`, `Kindled ${state.score.atk} — ${state.score.def} Wardens · first to 7`, '', 1.6);
       if (demo) { demoBoughtRound = 0; }
       else if (!shotName) openBuy();
     },
@@ -332,7 +336,7 @@ function setupShot(name) {
   game.startMatch();
   const st = game.state;
   if (name === 'buy') {
-    st.phaseT = 999;
+    st.phaseT = 11;
     openBuy();
     // Turn the player to face the rest of the Kindled line at spawn.
     player.yaw = Math.atan2(-(1), -(4.5));
@@ -342,17 +346,17 @@ function setupShot(name) {
     st.roundTime = 92;
     // A mid-match still: everyone is on rifles and armour by now.
     for (const c of game.combatants) { c.money = 6000; game.buyItem(c, 'rifle'); game.buyItem(c, 'armor'); }
-    teleport(player, 1.5, -1, -Math.PI / 2);
+    teleport(player, 5.5, 0.5, -Math.PI / 2);
     const defs = defBots();
-    teleport(defs[0], 11, -3.5, Math.PI / 2);
-    teleport(defs[1], 13.5, 2.5, Math.PI / 2);
-    teleport(defs[2], 16, -6, Math.PI / 2);
-    for (const d of defs) {
-      d.brain.targetId = player.id;
-      d.brain.targetRef = player;
-      d.brain.reactionT = 0.1;
-      d.brain.seenT = 0;
-    }
+    teleport(defs[0], 13.5, 1.5, Math.PI / 2);
+    teleport(defs[1], 17, 5, Math.PI / 2);
+    teleport(defs[2], 18, -4, Math.PI / 2);
+    // Only the nearest Warden is primed on the player; the others pick the
+    // fight up through their own perception, a beat later.
+    defs[0].brain.targetId = player.id;
+    defs[0].brain.targetRef = player;
+    defs[0].brain.reactionT = 0.35;
+    defs[0].brain.seenT = 0;
     const mate = game.combatants.find((c) => c.team === 'atk' && !c.isPlayer);
     teleport(mate, -2.5, 3.5, -Math.PI / 2);
     stage = { name, t: 0, contact: false };
@@ -377,19 +381,17 @@ function stageTick(dt) {
   if (!stage || frozen) return;
   const st = game.state;
   if (stage.name === 'buy') {
-    st.phaseT = 999;
+    st.phaseT = 11; // pinned: the buy clock holds at 0:11 for the still
     stage.at -= dt;
     if (stage.at <= 0) freeze();
   } else if (stage.name === 'fight') {
     stage.t += dt;
     const anyContact = defBots().some((d) => d.alive && d.brain.targetId === player.id && d.brain.seenT < 0.4);
     if (anyContact) stage.contact = true;
-    const playerContact = player.brain && player.brain.targetId && player.brain.seenT < 0.4;
-    if ((stage.contact && playerContact && stage.t > 1.2) || stage.t > 22) {
-      // Two more ticks so a tracer and the muzzle flash are in the air, then hold.
-      stage.endIn = (stage.endIn ?? 2) - 1;
-      if (stage.endIn <= 0) freeze();
-    }
+    // Freeze on the very tick the player fires at a seen enemy: the tracer and
+    // the viewmodel's muzzle flash are alive in that exact frame.
+    if (stage.contact && stage.t > 0.4 && st.time - lastShotAt <= STEP * 1.5) freeze();
+    else if (stage.t > 22) freeze();
   } else if (stage.name === 'plant') {
     stage.t += dt;
     if (!stage.planted) {
@@ -439,11 +441,15 @@ function frame(now) {
       accumulator -= STEP;
       if (frozen) break;
     }
+    // In a staged still, visual effects age by the frame's real dt — which on a
+    // slow software renderer is long enough to eat a muzzle flash whole. Age
+    // them by a frame-sized step instead, so the frozen frame keeps its tracer.
+    const fxDt = shotName ? Math.min(dt, 1 / 30) : dt;
     world.updateFx(now / 1000);
-    effects.update(dt, camera);
-    syncCamera(dt, now);
+    effects.update(fxDt, camera);
+    syncCamera(fxDt, now);
     syncHud();
-    hud.update(dt);
+    hud.update(fxDt);
     if (testMode && !testDumped && ((game.state.round >= 4 && game.state.phase === 'over') || game.state.time > 300 || game.state.phase === 'matchover')) {
       testDumped = true;
       const totalKills = game.combatants.reduce((s, c) => s + c.kills, 0);

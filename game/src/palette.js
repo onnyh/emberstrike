@@ -2,14 +2,14 @@
 // carry the scene; ember orange marks the Kindled, signal teal marks the Wardens,
 // and the Crucible furnace glow is the warm heart both teams fight over.
 export const PALETTE = {
-  sky: 0x232936, // dusk blue-grey, also the fog colour
+  sky: 0x2b3345, // dusk blue-grey, also the fog colour
   fogNear: 26,
   fogFar: 95,
   sun: 0xffd9a8,
-  sunIntensity: 1.15,
+  sunIntensity: 1.32,
   hemiSky: 0x8fa3c7,
   hemiGround: 0x3a3128,
-  hemiIntensity: 0.55,
+  hemiIntensity: 0.92,
   ground: 0x33363d,
   groundLine: 0x454a52,
   concrete: 0x5b6068,
