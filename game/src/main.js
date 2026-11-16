@@ -35,7 +35,10 @@ window.__ember = { errors };
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
+// &lowfx=1 is for headless test runs on software rendering: same simulation,
+// cheaper pixels (no shadow pass, no retina scaling).
+renderer.shadowMap.enabled = !params.has('lowfx');
+if (params.has('lowfx')) renderer.setPixelRatio(1);
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('game').appendChild(renderer.domElement);
 
@@ -417,12 +420,16 @@ function freeze() {
 let accumulator = 0;
 let lastTime = performance.now();
 let testDumped = false;
+let frameCount = 0;
 
 function frame(now) {
   requestAnimationFrame(frame);
   let dt = (now - lastTime) / 1000;
   lastTime = now;
-  if (dt > 0.25) dt = 0.25;
+  // A human's tab never legitimately lags a quarter second; a headless test
+  // run on software rendering may, and there the sim is allowed to catch up.
+  const dtCap = demo ? 1.0 : 0.25;
+  if (dt > dtCap) dt = dtCap;
   if (!frozen) {
     accumulator += dt;
     while (accumulator >= STEP) {
@@ -452,7 +459,10 @@ function frame(now) {
       window.__shotReady = true;
     }
   }
-  renderer.render(scene, camera);
+  // In lowfx test runs the software renderer is the bottleneck, not the sim:
+  // draw one frame in six and let the simulation spend the savings.
+  frameCount++;
+  if (!params.has('lowfx') || frozen || frameCount % 6 === 0) renderer.render(scene, camera);
 }
 
 window.addEventListener('resize', () => {

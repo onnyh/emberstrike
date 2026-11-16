@@ -68,7 +68,6 @@ export function createCharacter(team) {
 
   return {
     group,
-    torso,
     setDead() { dead = true; },
     reset() {
       dead = false;
